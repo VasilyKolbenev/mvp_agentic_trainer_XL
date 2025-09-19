@@ -1,0 +1,44 @@
+ПРИМЕР 1
+ТЕКСТ:
+"Передай показания воды за август"
+ОТВЕТ:
+{"domain_id":"house", "confidence":0.92,
+ "top_candidates":[["house",0.92],["okc",0.22],["utilizer",0.10]]}
+
+ПРИМЕР 2
+ТЕКСТ:
+"заберите, пожалуйста, старый диван"
+ОТВЕТ:
+{"domain_id":"utilizer", "confidence":0.90,
+ "top_candidates":[["utilizer",0.90],["house",0.15],["oos",0.05]]}
+
+ПРИМЕР 3
+ТЕКСТ:
+"какие станции метро завтра закрыты?"
+ОТВЕТ:
+{"domain_id":"okc", "confidence":0.86,
+ "top_candidates":[["okc",0.86],["house",0.18],["oos",0.06]]}
+
+ПРИМЕР 4
+ТЕКСТ:
+"расскажи шутку"
+ОТВЕТ:
+{"domain_id":"boltalka", "confidence":0.80,
+ "top_candidates":[["boltalka",0.80],["oos",0.25],["okc",0.12]]}
+
+ПРИМЕР 5
+ТЕКСТ:
+"ДЖУ"
+ОТВЕТ:
+{"domain_id":"house", "confidence":0.95,
+ "top_candidates":[["house",0.95],["oos",0.05]]}
+
+ПРИМЕР 6
+ТЕКСТ:
+"хватит"
+ОТВЕТ:
+{"domain_id":"oos", "confidence":0.95,
+ "top_candidates":[["oos",0.95]]}
+
+
+

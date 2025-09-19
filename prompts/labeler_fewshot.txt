@@ -35,6 +35,27 @@
 
 ПРИМЕР 6
 ТЕКСТ:
+"оплатить карту питания в школе"
+ОТВЕТ:
+{"domain_id":"payments", "confidence":0.92,
+ "top_candidates":[["payments",0.92],["house",0.15],["oos",0.05]]}
+
+ПРИМЕР 7
+ТЕКСТ:
+"пополнить баланс карты ребенка"
+ОТВЕТ:
+{"domain_id":"payments", "confidence":0.90,
+ "top_candidates":[["payments",0.90],["oos",0.10]]}
+
+ПРИМЕР 8
+ТЕКСТ:
+"сколько стоит питание в школе"
+ОТВЕТ:
+{"domain_id":"okc", "confidence":0.85,
+ "top_candidates":[["okc",0.85],["payments",0.10],["oos",0.05]]}
+
+ПРИМЕР 9
+ТЕКСТ:
 "хватит"
 ОТВЕТ:
 {"domain_id":"oos", "confidence":0.95,

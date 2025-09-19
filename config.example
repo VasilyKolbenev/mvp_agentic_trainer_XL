@@ -1,0 +1,38 @@
+# ===========================================
+# ESK Agent LLM Pro - Конфигурация
+# ===========================================
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789
+PUBLIC_URL=  # Для webhook режима (оставить пустым для polling)
+PORT=8080
+
+# LLM Configuration (основные настройки)
+LLM_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+LLM_API_BASE=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+
+# Опционально: отдельные LLM для разных задач
+# LLM_API_KEY_LABELER=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# LLM_MODEL_LABELER=gpt-4o-mini
+# LLM_API_KEY_AUGMENTER=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# LLM_MODEL_AUGMENTER=gpt-4o-mini
+
+# Поведение системы
+DATA_DIR=data
+LOW_CONF=0.50          # Порог низкой уверенности для HITL
+BATCH_SIZE=20          # Размер батча для LLM
+RATE_LIMIT=0.4         # Задержка между запросами (сек)
+MAX_BATCH=2000         # Максимум строк в файле
+
+# Аугментация
+AUGMENT_INCLUDE_LOWCONF=false  # Включать низкоуверенные в аугментацию
+
+# Прогресс и производительность  
+PROGRESS_CHUNK=100     # Частота обновления прогресса
+SEND_PARTIALS=true     # Отправлять промежуточные результаты
+SHARD_SIZE=0          # Размер шарда (0 = без шардинга)
+ROW_OFFSET=0          # Смещение строк
+
+# Логирование
+LOG_LEVEL=INFO         # DEBUG, INFO, WARNING, ERROR

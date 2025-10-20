@@ -9,10 +9,16 @@
 │                         ML Data Pipeline System                          │
 └─────────────────────────────────────────────────────────────────────────┘
 
-┌────────────┐    ┌─────────┐    ┌──────────────┐    ┌──────────────┐
-│    API     │───▶│   ETL   │───▶│Labeler_Agent │───▶│ReviewDataset │
-│ (FastAPI)  │    │(Обработ)│    │(LLM-агент)   │    │   (HITL)     │
-└────────────┘    └─────────┘    └──────────────┘    └──────────────┘
+┌────────────┐    ┌────────────┐    ┌─────────┐    ┌──────────────┐
+│  ECK_Logs  │───▶│    API     │───▶│   ETL   │───▶│Labeler_Agent │───▶
+│(ClickHouse)│    │ (FastAPI)  │    │(Обработ)│    │(LLM-агент)   │    
+└────────────┘    └────────────┘    └─────────┘    └──────────────┘    
+                                                           │
+                                                           ▼
+                                                    ┌──────────────┐
+                                                    │ReviewDataset │
+                                                    │   (HITL)     │
+                                                    └──────────────┘
                                          │                     │
                                          ▼                     ▼
                               ┌────────────────────┐    ┌──────────┐
@@ -35,14 +41,56 @@
 
 ## Компоненты системы
 
-### 1. API (Входная точка)
+### 1. ECK_Logs (Источник данных)
+
+**Расположение:** ClickHouse Database
+
+**Описание:** Хранилище логов ESK (Единый Сервисный Контакт-центр) из которого поступают данные для обработки.
+
+**Функции:**
+- Хранение сырых логов обращений пользователей
+- SQL запросы для выгрузки данных
+- Экспорт в различных форматах (CSV, JSON, Parquet)
+- Временные метки и метаданные
+
+**Подключение:**
+```python
+# Пример запроса к ClickHouse
+import clickhouse_connect
+
+client = clickhouse_connect.get_client(
+    host='your-clickhouse-host',
+    port=8123,
+    username='default',
+    password='password'
+)
+
+# Выгрузка логов
+query = """
+    SELECT 
+        text,
+        domain,
+        timestamp,
+        user_id
+    FROM esk_logs
+    WHERE date >= today() - 7
+"""
+
+df = client.query_df(query)
+# Далее → API → ETL → Pipeline
+```
+
+---
+
+### 2. API (Входная точка Pipeline)
 
 **Расположение:** `src/api.py`
 
-**Описание:** FastAPI REST API сервис для приема логов и управления pipeline.
+**Описание:** FastAPI REST API сервис для приема логов из ClickHouse и управления pipeline.
 
 **Функции:**
 - Прием файлов через HTTP (XLSX/CSV/JSON/JSONL/Parquet)
+- Прием данных напрямую из ClickHouse через SQL connector
 - Классификация текстов через API
 - Управление версиями датасетов
 - Экспорт результатов
@@ -50,7 +98,8 @@
 
 **Технологии:**
 - `FastAPI` для REST API
-- `uvicorn` для ASGI сервера
+- `uvicorn` для ASGI сервера  
+- `clickhouse-connect` для подключения к ClickHouse (опционально)
 - Async/await для неблокирующих операций
 - OpenAPI/Swagger документация из коробки
 

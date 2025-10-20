@@ -6,6 +6,9 @@ python-multipart>=0.0.6
 # HTTP Client
 httpx>=0.27
 
+# ClickHouse connector (для ECK_Logs)
+clickhouse-connect>=0.6.0
+
 # Environment & Configuration
 python-dotenv>=1.0
 pydantic>=2.8

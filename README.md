@@ -203,42 +203,55 @@ curl -X POST "http://localhost:8000/process" \
 
 ---
 
-## 🌐 Локальные LLM модели
+## 🌐 Локальные LLM в закрытом контуре
 
-### Ollama (рекомендуется)
+### 🔒 Production setup (Mistral + Qwen через vLLM)
 
-**В Docker:**
-```yaml
-# Раскомментируйте в docker-compose.yml:
-services:
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
+**Для закрытого контура - готовая конфигурация:**
 
-# В .env:
-LLM_API_BASE=http://ollama:11434/v1
-LLM_MODEL=llama3.1:8b
-LLM_API_KEY=dummy
+```bash
+# Используйте специальный docker-compose
+cp docker-compose.local-llm.yml docker-compose.yml
+
+docker-compose up -d
 ```
 
-**Локально:**
+**Архитектура:**
+- **Labeler** → Mistral-7B (точная классификация)
+- **Augmenter** → Qwen2-7B (креативная генерация)
+- **Quality Control** → Косинусное расстояние + Левенштейн
+- **Всё в закрытом контуре!** Нет внешних API calls
+
+**Требования:**
+- NVIDIA GPU (2× с 24GB VRAM или 1× с 48GB)
+- Docker с GPU support
+
+### 🚀 Быстрый старт с Ollama
+
+**Проще для dev/test:**
+
 ```bash
-# Установка
-curl -fsSL https://ollama.ai/install.sh | sh
+# 1. Запуск Ollama
+docker-compose up -d ollama
 
-# Запуск
-ollama serve
-ollama pull llama3.1:8b
+# 2. Загрузка моделей
+docker-compose exec ollama ollama pull mistral:7b
+docker-compose exec ollama ollama pull qwen2:7b
 
-# Конфигурация
-LLM_API_BASE=http://localhost:11434/v1
-LLM_MODEL=llama3.1:8b
+# 3. Конфигурация в .env:
+LLM_LABELER_API_BASE=http://ollama:11434/v1
+LLM_LABELER_MODEL=mistral:7b
+
+LLM_AUGMENTER_API_BASE=http://ollama:11434/v1
+LLM_AUGMENTER_MODEL=qwen2:7b
+
+# 4. Запуск pipeline
+docker-compose up -d ml-pipeline
 ```
 
 **Работает бесплатно! 🆓**
 
-Также поддерживаются: vLLM, LM Studio, Text Generation WebUI
+**Полная документация:** [LOCAL_LLM_SETUP.md](LOCAL_LLM_SETUP.md)
 
 ---
 

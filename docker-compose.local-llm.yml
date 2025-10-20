@@ -1,0 +1,186 @@
+version: '3.8'
+
+# Закрытый контур с локальными LLM моделями (Mistral + Qwen)
+
+networks:
+  ml-network:
+    driver: bridge
+    # internal: true  # Раскомментируйте для полной изоляции от интернета
+
+services:
+  # ==================== LLM Модели ====================
+  
+  # Mistral для классификации (Labeler)
+  llm-labeler:
+    image: vllm/vllm-openai:latest
+    container_name: llm-labeler-mistral
+    command: >
+      --model mistralai/Mistral-7B-Instruct-v0.2
+      --host 0.0.0.0
+      --port 8000
+      --dtype float16
+      --max-model-len 8192
+      --gpu-memory-utilization 0.9
+      --trust-remote-code
+    ports:
+      - "8000:8000"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - ml-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s  # Даем время на загрузку модели
+  
+  # Qwen для генерации (Augmenter)
+  llm-augmenter:
+    image: vllm/vllm-openai:latest
+    container_name: llm-augmenter-qwen
+    command: >
+      --model Qwen/Qwen2-7B-Instruct
+      --host 0.0.0.0
+      --port 8001
+      --dtype float16
+      --max-model-len 8192
+      --gpu-memory-utilization 0.9
+      --trust-remote-code
+    ports:
+      - "8001:8001"
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - ml-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+  
+  # ==================== ML Pipeline ====================
+  
+  ml-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ml-pipeline
+    ports:
+      - "8080:8000"  # Единственный внешний порт
+    environment:
+      # ===== Labeler (Mistral) =====
+      - LLM_LABELER_API_BASE=http://llm-labeler:8000/v1
+      - LLM_LABELER_MODEL=mistralai/Mistral-7B-Instruct-v0.2
+      - LLM_LABELER_API_KEY=dummy
+      
+      # ===== Augmenter (Qwen) =====
+      - LLM_AUGMENTER_API_BASE=http://llm-augmenter:8001/v1
+      - LLM_AUGMENTER_MODEL=Qwen/Qwen2-7B-Instruct
+      - LLM_AUGMENTER_API_KEY=dummy
+      
+      # ===== ETL =====
+      - ETL_MAX_ROWS=10000
+      - ETL_DEDUPLICATE=true
+      
+      # ===== Labeler параметры =====
+      - LABELER_BATCH_SIZE=50
+      - LABELER_RATE_LIMIT=0.1
+      - LABELER_LOW_CONF_THRESHOLD=0.5
+      - LABELER_USE_CACHE=true
+      
+      # ===== Augmenter параметры =====
+      - AUGMENTER_VARIANTS_PER_SAMPLE=3
+      - AUGMENTER_CONCURRENCY=16
+      - AUGMENTER_RATE_LIMIT=0.05
+      - AUGMENTER_MAX_SAMPLES_PER_DOMAIN=50
+      
+      # ===== Quality Control =====
+      - QC_MIN_COSINE_SIMILARITY=0.3
+      - QC_MAX_COSINE_SIMILARITY=0.95
+      - QC_MAX_LEVENSHTEIN_RATIO=0.8
+      - QC_VALIDATE_EXISTING_LABELS=true
+      - QC_RELABEL_SYNTHETIC=true
+      - QC_STRICT_MODE=false
+      
+      # ===== Data Writer =====
+      - DATA_WRITER_EVAL_FRACTION=0.1
+      - DATA_WRITER_BALANCE_DOMAINS=true
+      - DATA_WRITER_VALIDATE_QUALITY=true
+      
+      # ===== Storage =====
+      - DATA_STORAGE_MAX_VERSIONS=100
+      - DATA_STORAGE_AUTO_ARCHIVE_OLD=true
+      
+      # ===== Cache =====
+      - CACHE_TTL_HOURS=168  # 7 дней
+      - CACHE_ENABLED=true
+      
+      # ===== App =====
+      - APP_MODE=production
+      - APP_DATA_DIR=/app/data
+      - APP_LOG_LEVEL=INFO
+    
+    volumes:
+      - ./data:/app/data
+      - ./prompts:/app/prompts:ro
+    
+    networks:
+      - ml-network
+    
+    depends_on:
+      llm-labeler:
+        condition: service_healthy
+      llm-augmenter:
+        condition: service_healthy
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  huggingface_cache:
+    driver: local
+
+# ==================== Monitoring (опционально) ====================
+# 
+# Раскомментируйте для добавления мониторинга:
+#
+#   prometheus:
+#     image: prom/prometheus:latest
+#     ports:
+#       - "9090:9090"
+#     volumes:
+#       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+#     networks:
+#       - ml-network
+#
+#   grafana:
+#     image: grafana/grafana:latest
+#     ports:
+#       - "3000:3000"
+#     networks:
+#       - ml-network
+

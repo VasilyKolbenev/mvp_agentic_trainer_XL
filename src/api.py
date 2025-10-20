@@ -18,6 +18,7 @@ from .pipeline import (
     ETLProcessor, ETLConfig,
     LabelerAgent, LabelerConfig,
     AugmenterAgent, AugmenterConfig,
+    QualityControl, QualityControlConfig,
     ReviewDataset, ReviewDatasetConfig,
     DataWriter, DataWriterConfig,
     DataStorage, DataStorageConfig,
@@ -45,13 +46,14 @@ app = FastAPI(
 etl_processor = ETLProcessor(ETLConfig())
 labeler_agent = None
 augmenter_agent = None
+quality_control = None
 data_writer = None
 data_storage = None
 
 
 def init_components():
     """Инициализация компонентов при старте"""
-    global labeler_agent, augmenter_agent, data_writer, data_storage
+    global labeler_agent, augmenter_agent, quality_control, data_writer, data_storage
     
     # Labeler
     labeler_config = LabelerConfig(
@@ -71,6 +73,17 @@ def init_components():
     )
     augmenter_agent = AugmenterAgent(augmenter_config)
     logger.info("AugmenterAgent initialized")
+    
+    # QualityControl
+    quality_control = QualityControl(QualityControlConfig(
+        min_cosine_similarity=0.3,
+        max_cosine_similarity=0.95,
+        max_levenshtein_ratio=0.8,
+        validate_existing_labels=True,
+        relabel_synthetic=True,
+        strict_mode=False,
+    ))
+    logger.info("QualityControl initialized")
     
     # DataWriter
     data_writer = DataWriter(DataWriterConfig(
@@ -166,6 +179,7 @@ async def health_check():
             "etl": "ok",
             "labeler": "ok" if labeler_agent else "not initialized",
             "augmenter": "ok" if augmenter_agent else "not initialized",
+            "quality_control": "ok" if quality_control else "not initialized",
             "data_writer": "ok" if data_writer else "not initialized",
             "data_storage": "ok" if data_storage else "not initialized",
         }
@@ -222,19 +236,55 @@ async def process_logs(request: ProcessRequest, background_tasks: BackgroundTask
         
         logger.info(f"ETL: processed {len(df)} rows")
         
-        # 2. Labeling
+        # 2. Labeling - валидация существующих меток (если есть) или новая разметка
         results = await labeler_agent.classify_dataframe(df)
         logger.info(f"Labeling: classified {len(results)} texts")
         
+        # 2.1 Валидация существующей разметки (если логи уже с метками)
+        if "domain" in df.columns or "label" in df.columns:
+            original_items = []
+            for idx, row in df.iterrows():
+                original_items.append({
+                    "text": row.get("text", ""),
+                    "domain_id": row.get("domain") or row.get("label", "unknown")
+                })
+            
+            validation_results = await quality_control.validate_existing_labels(
+                original_items,
+                labeler_agent
+            )
+            
+            logger.info(f"Validation: checked {len(validation_results)} existing labels")
+            
+            # Используем валидированные домены
+            for i, val_result in enumerate(validation_results):
+                if i < len(results):
+                    results[i].domain_true = val_result.validated_domain
+        
         # 3. Augmentation (опционально)
         all_items = [r.dict() for r in results]
+        synthetic_validated = []
         
         if request.augment:
-            synthetic = await augmenter_agent.augment_batch(
-                [r.dict() for r in results if r.confidence >= 0.7]
-            )
-            all_items.extend([s.dict() for s in synthetic])
+            # 3.1 Генерируем синтетику из уверенных примеров
+            high_conf_items = [r.dict() for r in results if r.confidence >= 0.7]
+            
+            synthetic = await augmenter_agent.augment_batch(high_conf_items)
             logger.info(f"Augmentation: generated {len(synthetic)} samples")
+            
+            # 3.2 Контроль качества синтетики (косинусное + Левенштейн)
+            synthetic_validated = await quality_control.validate_and_label_synthetic(
+                synthetic_items=[s.dict() for s in synthetic],
+                original_items=high_conf_items,
+                labeler_agent=labeler_agent
+            )
+            
+            logger.info(
+                f"Quality Control: {len(synthetic_validated)}/{len(synthetic)} synthetic samples passed "
+                f"(pass rate: {len(synthetic_validated)/len(synthetic):.2%})"
+            )
+            
+            all_items.extend(synthetic_validated)
         
         # 4. DataWriter
         writer_config = DataWriterConfig(
@@ -424,6 +474,7 @@ async def get_stats():
         return {
             "labeler": labeler_agent.get_stats() if labeler_agent else {},
             "augmenter": augmenter_agent.get_stats() if augmenter_agent else {},
+            "quality_control": quality_control.get_stats() if quality_control else {},
             "storage": data_storage.get_stats() if data_storage else {},
         }
     

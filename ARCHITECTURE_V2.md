@@ -10,8 +10,8 @@
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────┐    ┌─────────┐    ┌──────────────┐    ┌──────────────┐
-│  ECK_Logs  │───▶│   ETL   │───▶│Labeler_Agent │───▶│ReviewDataset │
-│(Telegram)  │    │(Обработ)│    │(LLM-агент)   │    │   (HITL)     │
+│    API     │───▶│   ETL   │───▶│Labeler_Agent │───▶│ReviewDataset │
+│ (FastAPI)  │    │(Обработ)│    │(LLM-агент)   │    │   (HITL)     │
 └────────────┘    └─────────┘    └──────────────┘    └──────────────┘
                                          │                     │
                                          ▼                     ▼
@@ -35,21 +35,24 @@
 
 ## Компоненты системы
 
-### 1. ECK_Logs (Источник данных)
+### 1. API (Входная точка)
 
-**Расположение:** `src/bot.py`
+**Расположение:** `src/api.py`
 
-**Описание:** Telegram бот как источник входящих логов и запросов пользователей.
+**Описание:** FastAPI REST API сервис для приема логов и управления pipeline.
 
 **Функции:**
-- Прием текстовых сообщений от пользователей
-- Загрузка файлов (XLSX/CSV)
-- Интерактивное взаимодействие через inline-кнопки
-- HITL интерфейс для ручной проверки
+- Прием файлов через HTTP (XLSX/CSV/JSON/JSONL/Parquet)
+- Классификация текстов через API
+- Управление версиями датасетов
+- Экспорт результатов
+- Swagger документация (`/docs`)
 
 **Технологии:**
-- `python-telegram-bot` v21.6
+- `FastAPI` для REST API
+- `uvicorn` для ASGI сервера
 - Async/await для неблокирующих операций
+- OpenAPI/Swagger документация из коробки
 
 ---
 
@@ -440,7 +443,7 @@ review_config = ReviewDatasetConfig(data_dir=Path("data"))
 review = ReviewDataset(review_config)
 review.add_items([r.dict() for r in low_conf_items])
 
-# ... Пользователь проверяет через Telegram UI ...
+# ... Проверка через HITL API endpoints или внешний UI ...
 
 reviewed_items = review.export_reviewed()
 
@@ -507,8 +510,8 @@ from src.config_v2 import Settings
 
 settings = Settings.load()
 
-# Telegram config
-print(settings.telegram.bot_token)
+# App config
+print(settings.app.mode)
 
 # LLM config
 print(settings.llm.model)
@@ -524,11 +527,6 @@ print(settings.augmenter.variants_per_sample)
 Создайте `.env` файл:
 
 ```env
-# Telegram
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_PUBLIC_URL=https://your-app.railway.app
-TELEGRAM_PORT=8080
-
 # LLM (главная модель)
 LLM_API_KEY=sk-...
 LLM_API_BASE=https://api.openai.com/v1

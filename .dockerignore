@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data (будет монтироваться как volume)
+data/
+!data/.gitkeep
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (не нужно в образе)
+*.md
+docs/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Env files (передаются через docker-compose)
+.env
+.env.*
+config.example
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Временные файлы
+*.tmp
+*.bak
+*.swp
+.cache/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+# Coverage
+.coverage
+htmlcov/
+

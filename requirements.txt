@@ -1,5 +1,7 @@
-# Telegram Bot
-python-telegram-bot==21.6
+# FastAPI Backend
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
 
 # HTTP Client
 httpx>=0.27
@@ -19,23 +21,15 @@ openai>=1.40.0
 tiktoken>=0.7.0
 pydantic-ai>=0.0.14
 
-# Local LLM Support
-ollama>=0.1.0  # Optional: for Ollama integration
+# Local LLM Support (optional)
+# ollama>=0.1.0
 
-# Machine Learning (для анализа)
+# Machine Learning
 scikit-learn>=1.3.0
 
 # Utilities
 tqdm>=4.66.0
-rich>=13.7.0
-
-# Async
-asyncio>=3.4.3
 aiofiles>=23.2.0
 
-# Logging & Monitoring
+# Logging
 loguru>=0.7.0
-
-# Testing (optional)
-pytest>=7.4.0
-pytest-asyncio>=0.21.0

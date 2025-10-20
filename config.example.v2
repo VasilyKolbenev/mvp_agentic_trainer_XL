@@ -1,0 +1,68 @@
+# ========== Telegram Bot ==========
+# Получите токен у @BotFather в Telegram
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+
+# Public URL для webhook (опционально, для Railway/Heroku)
+TELEGRAM_PUBLIC_URL=https://your-app.railway.app
+TELEGRAM_PORT=8080
+
+# ========== LLM (основная модель) ==========
+LLM_API_KEY=sk-your-openai-api-key-here
+LLM_API_BASE=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+LLM_TEMPERATURE=1.0
+
+# ========== LLM Labeler (опционально) ==========
+# LLM_LABELER_API_KEY=dummy
+# LLM_LABELER_API_BASE=http://localhost:11434/v1
+# LLM_LABELER_MODEL=llama3.1:8b
+
+# ========== LLM Augmenter (опционально) ==========
+# LLM_AUGMENTER_API_KEY=sk-...
+# LLM_AUGMENTER_MODEL=gpt-4o-mini
+
+# ========== ETL ==========
+ETL_MAX_ROWS=10000
+ETL_DEDUPLICATE=true
+ETL_MIN_TEXT_LENGTH=3
+ETL_MAX_TEXT_LENGTH=1000
+
+# ========== Labeler Agent ==========
+LABELER_BATCH_SIZE=20
+LABELER_RATE_LIMIT=0.4
+LABELER_LOW_CONF_THRESHOLD=0.5
+LABELER_USE_CACHE=true
+LABELER_USE_DYNAMIC_FEWSHOT=true
+
+# ========== Augmenter Agent ==========
+AUGMENTER_VARIANTS_PER_SAMPLE=3
+AUGMENTER_INCLUDE_HARD_NEGATIVES=false
+AUGMENTER_CONCURRENCY=8
+AUGMENTER_RATE_LIMIT=0.1
+AUGMENTER_MAX_SAMPLES_PER_DOMAIN=30
+
+# ========== Review (HITL) ==========
+REVIEW_LOW_CONFIDENCE_THRESHOLD=0.5
+REVIEW_HIGH_PRIORITY_THRESHOLD=0.3
+REVIEW_MAX_QUEUE_SIZE=10000
+REVIEW_AUTO_APPROVE_THRESHOLD=0.95
+
+# ========== Data Writer ==========
+DATA_WRITER_EVAL_FRACTION=0.1
+DATA_WRITER_MIN_EVAL_SAMPLES=50
+DATA_WRITER_BALANCE_DOMAINS=true
+DATA_WRITER_VALIDATE_QUALITY=true
+
+# ========== Data Storage ==========
+DATA_STORAGE_MAX_VERSIONS=100
+DATA_STORAGE_AUTO_ARCHIVE_OLD=true
+
+# ========== Cache ==========
+CACHE_TTL_HOURS=24
+CACHE_ENABLED=true
+
+# ========== App ==========
+APP_MODE=development
+APP_DATA_DIR=data
+APP_LOG_LEVEL=INFO
+

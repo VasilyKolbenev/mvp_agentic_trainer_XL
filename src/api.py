@@ -23,6 +23,7 @@ from .pipeline import (
     DataWriter, DataWriterConfig,
     DataStorage, DataStorageConfig,
 )
+from .pipeline.labeler_validator import LabelerValidator, ValidationConfig
 from .config_v2 import Settings
 
 # Настройка логирования
@@ -45,6 +46,7 @@ app = FastAPI(
 # Глобальные компоненты
 etl_processor = ETLProcessor(ETLConfig())
 labeler_agent = None
+labeler_validator = None
 augmenter_agent = None
 quality_control = None
 data_writer = None
@@ -53,7 +55,7 @@ data_storage = None
 
 def init_components():
     """Инициализация компонентов при старте"""
-    global labeler_agent, augmenter_agent, quality_control, data_writer, data_storage
+    global labeler_agent, labeler_validator, augmenter_agent, quality_control, data_writer, data_storage
     
     # Labeler
     labeler_config = LabelerConfig(
@@ -64,6 +66,17 @@ def init_components():
     )
     labeler_agent = LabelerAgent(labeler_config)
     logger.info("LabelerAgent initialized")
+    
+    # Labeler Validator (жесткий контроль качества)
+    labeler_validator = LabelerValidator(ValidationConfig(
+        enable_consensus=True,
+        consensus_runs=3,
+        enable_rules=True,
+        strict_mode=True,
+        min_confidence=0.5,
+        high_confidence=0.8,
+    ))
+    logger.info("LabelerValidator initialized")
     
     # Augmenter
     augmenter_config = AugmenterConfig(
@@ -178,6 +191,7 @@ async def health_check():
         "components": {
             "etl": "ok",
             "labeler": "ok" if labeler_agent else "not initialized",
+            "labeler_validator": "ok" if labeler_validator else "not initialized",
             "augmenter": "ok" if augmenter_agent else "not initialized",
             "quality_control": "ok" if quality_control else "not initialized",
             "data_writer": "ok" if data_writer else "not initialized",
@@ -473,6 +487,7 @@ async def get_stats():
     try:
         return {
             "labeler": labeler_agent.get_stats() if labeler_agent else {},
+            "labeler_validator": labeler_validator.get_stats() if labeler_validator else {},
             "augmenter": augmenter_agent.get_stats() if augmenter_agent else {},
             "quality_control": quality_control.get_stats() if quality_control else {},
             "storage": data_storage.get_stats() if data_storage else {},
